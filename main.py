@@ -1,0 +1,183 @@
+import json
+from pathlib import Path
+from time import time
+
+import arrow
+import click
+import dash
+from dash import dcc, html, Input, Output
+from flask import request
+import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
+
+import processing
+from processing import process
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.argument("data", type=click.File())
+@click.argument("cross_sections", type=click.File())
+@click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
+@click.option("-b", "--bounds_file", type=click.File())
+def analyze(data, cross_sections, out_folder, bounds_file):
+    # Load data
+    data = pd.read_pickle(data.name)
+
+    # Load cross sections
+    cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
+
+    if bounds_file is None:
+        # Pick a specific wavelength for the bounds picker to display
+        wavelengths = data.columns
+        selected_wavelength = wavelengths[(wavelengths > 308) & (wavelengths < 312)][0]
+        bounds = run_bounds_picker(data[selected_wavelength])
+    else:
+        bounds = json.load(bounds_file)
+
+    processed_data = processing.analyze(data, bounds, cross_sections)
+
+    save_data(processed_data, out_folder)
+
+
+@cli.command(name="import")
+@click.argument(
+    "in_folder", type=click.Path(exists=True, dir_okay=True, file_okay=False)
+)
+@click.argument("out_data", type=click.Path(file_okay=True, dir_okay=False))
+@click.option(
+    "--format", type=click.Choice(["asc"], case_sensitive=False), default="asc"
+)
+def import_data(in_folder, out_data, format):
+    if format == "asc":
+        data = process_asc(in_folder)
+    else:
+        print(f"Unknown format: {format}")
+        exit(1)
+
+    data = data.sort_index()
+    data.to_pickle(out_data)
+
+
+def process_asc(folder):
+    folder = Path(folder)
+
+    files = [file for file in folder.iterdir() if file.suffix == ".asc"]
+    data = [asc_to_df(file) for file in files]
+
+    index, data = zip(*data)
+    return pd.DataFrame(data, index=index)
+
+
+def asc_to_df(filename):
+    with open(filename) as f:
+        lines = f.readlines()
+
+        # First line contains the timestamp
+        timestamp = lines[0].split(":", 1)[1].strip()
+        timestamp = arrow.get(timestamp, "ddd MMM DD HH:mm:ss.S YYYY").datetime
+
+        # Get the data from the rest of the file
+        index, data = zip(*[line.strip().split("\t", 1) for line in lines[32:]])
+        index = map(float, index)
+        data = map(float, data)
+
+        return timestamp, pd.Series(data=data, index=index)
+
+
+def save_data(processed_data, out_folder):
+    out_folder = Path(out_folder)
+
+    # Save cross section plot
+    cross_sections = processed_data["cross_sections"]
+    plt.plot(cross_sections.index, cross_sections)
+    plt.savefig(out_folder / "cross_sections.png")
+    plt.cla()
+
+    # Save cross section plot
+    fitted_data = processed_data["fit_data"]
+    plt.plot(fitted_data.index, fitted_data)
+    plt.savefig(out_folder / "fitted_data.png")
+    plt.cla()
+
+
+def run_bounds_picker(data):
+    from collections import defaultdict
+
+    bounds = defaultdict(lambda: [None, None])
+    app = dash.Dash(__name__)
+
+    fig = px.line(data)
+    fig.update_xaxes(title_text="Time")
+    fig.update_yaxes(title_text="Intensity")
+    fig.update_layout(dragmode="select", hovermode=False)
+
+    app.layout = html.Div(
+        [
+            dcc.Location(id="url", refresh=False),
+            dcc.Graph(id="one-wavelength", figure=fig),
+            html.Br(),
+            dcc.RadioItems(
+                id="radio-select",
+                options=[
+                    {"label": "Dark Count   ", "value": "darkcounts"},
+                    {"label": "N2   ", "value": "N2"},
+                    {"label": "He   ", "value": "He"},
+                    {"label": "Target Sample", "value": "Target"},
+                ],
+                value="N2_Left",
+            ),
+            html.Div(id="placeholder"),
+            html.Br(),
+            html.Link("Analyze Data", href="/analyze"),
+            html.Br(),
+            dcc.Link("Done", href="/shutdown"),
+            html.Div(id="page-content"),
+        ]
+    )
+
+    @app.callback(
+        Output("placeholder", "children"),
+        Input("radio-select", "value"),
+        Input("one-wavelength", "selectedData"),
+    )
+    def getSelection(radio_select, graph_select):
+        nonlocal bounds
+        ran = graph_select["range"]["x"]
+        if radio_select == "darkcounts":
+            bounds["dark"][0] = ran[0]
+            bounds["dark"][1] = ran[1]
+        if radio_select == "N2":
+            bounds["N2"][0] = ran[0]
+            bounds["N2"][1] = ran[1]
+        if radio_select == "He":
+            bounds["He"][0] = ran[0]
+            bounds["He"][1] = ran[1]
+        if radio_select == "Target":
+            bounds["target"][0] = ran[0]
+            bounds["target"][1] = ran[1]
+        return ""
+
+    def shutdown():
+        func = request.environ.get("werkzeug.server.shutdown")
+        if func is None:
+            raise RuntimeError("Not running with the Werkzeug Server")
+        func()
+
+    @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+    def display_page(pathname):
+        if pathname == "/shutdown":
+            shutdown()
+        return html.Div([html.H3("{}".format(pathname))])
+
+    app.run_server(debug=False, use_reloader=False)
+    return bounds
+
+
+if __name__ == "__main__":
+    cli()
