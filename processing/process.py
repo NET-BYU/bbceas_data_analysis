@@ -44,6 +44,8 @@ def analyze(samples, bounds, cross_sections):
     y_data = absorption.to_numpy()
     fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
 
+    residues = fit_data - absorption
+
     return {
         "samples": samples,
         "reflectivity": reflectivity,
@@ -51,6 +53,7 @@ def analyze(samples, bounds, cross_sections):
         "cross_sections": cross_sections,
         "fit_data": fit_data,
         "fit_curve_values": fit_curve_values,
+        "residues": residues,
     }
 
 
