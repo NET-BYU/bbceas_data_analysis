@@ -7,6 +7,7 @@ import dash
 from dash import dcc, html, Input, Output
 from flask import request
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import pandas as pd
 import plotly.express as px
 
@@ -97,10 +98,20 @@ def save_data(processed_data, out_folder):
     plt.savefig(out_folder / "cross_sections.png")
     plt.cla()
 
-    # Save cross section plot
     fitted_data = processed_data["fit_data"]
-    plt.plot(fitted_data.index, fitted_data)
-    plt.savefig(out_folder / "fitted_data.png")
+    absorption = processed_data["absorption"]
+    residues = processed_data["residues"]
+
+    fig = plt.figure(constrained_layout=True)
+    gs = GridSpec(3, 1, figure=fig)
+
+    ax1 = fig.add_subplot(gs[0, :])
+    ax2 = fig.add_subplot(gs[1:, :])
+
+    ax1.plot(residues.index, residues, ".-")
+    ax2.plot(fitted_data.index, fitted_data)
+    ax2.plot(absorption.index, absorption)
+    plt.savefig(out_folder / "results.png")
     plt.cla()
 
 
