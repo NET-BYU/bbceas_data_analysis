@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from time import time
 
 import arrow
 import click
@@ -12,7 +11,6 @@ import pandas as pd
 import plotly.express as px
 
 import processing
-from processing import process
 
 
 @click.group()
