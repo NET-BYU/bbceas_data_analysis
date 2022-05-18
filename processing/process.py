@@ -15,6 +15,9 @@ def analyze(samples, bounds, cross_sections):
     # Replace sample's wavelength with the cross_section's wavelength
     samples.columns = cross_sections.index
 
+    # Select wavelengths we care about (306 - 312)
+    samples, cross_sections = select_wavelengths(samples, cross_sections, 306, 312)
+
     bounded_samples = bound_samples(samples, bounds)
 
     densities = get_densities()
@@ -49,6 +52,13 @@ def analyze(samples, bounds, cross_sections):
         "fit_data": fit_data,
         "fit_curve_values": fit_curve_values,
     }
+
+
+def select_wavelengths(samples, cross_sections, low_bound, high_bound):
+    wavelengths = cross_sections.index
+    wavelengths = wavelengths[(wavelengths > low_bound) & (wavelengths < high_bound)]
+
+    return samples[wavelengths], cross_sections.loc[wavelengths]
 
 
 def bound_samples(samples, bounds):
