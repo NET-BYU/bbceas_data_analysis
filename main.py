@@ -20,26 +20,26 @@ def cli():
 
 
 @cli.command()
-@click.argument("data", type=click.File())
+@click.argument("in_data", type=click.File())
 @click.argument("cross_sections", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option("-b", "--bounds_file", type=click.File())
-def analyze(data, cross_sections, out_folder, bounds_file):
+def analyze(in_data, cross_sections, out_folder, bounds_file):
     # Load data
-    data = pd.read_pickle(data.name)
+    in_data = pd.read_pickle(in_data.name)
 
     # Load cross sections
     cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
 
     if bounds_file is None:
         # Pick a specific wavelength for the bounds picker to display
-        wavelengths = data.columns
+        wavelengths = in_data.columns
         selected_wavelength = wavelengths[(wavelengths > 308) & (wavelengths < 312)][0]
-        bounds = run_bounds_picker(data[selected_wavelength])
+        bounds = run_bounds_picker(in_data[selected_wavelength])
     else:
         bounds = json.load(bounds_file)
 
-    processed_data = processing.analyze(data, bounds, cross_sections)
+    processed_data = processing.analyze(in_data, bounds, cross_sections)
 
     save_data(processed_data, out_folder)
 
