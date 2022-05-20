@@ -175,7 +175,7 @@ def run_bounds_picker(data):
     def shutdown():
         func = request.environ.get("werkzeug.server.shutdown")
         if func is None:
-            raise RuntimeError("Not running with the Werkzeug Server")
+           raise RuntimeError("Not running with the Werkzeug Server")
         func()
 
     @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
