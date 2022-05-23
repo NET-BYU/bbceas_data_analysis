@@ -1,4 +1,5 @@
 import json
+from msilib.schema import ControlEvent
 from pathlib import Path
 
 import arrow
@@ -36,6 +37,7 @@ def analyze(in_data, cross_sections, out_folder, bounds_file):
         wavelengths = in_data.columns
         selected_wavelength = wavelengths[(wavelengths > 308) & (wavelengths < 312)][0]
         bounds = run_bounds_picker(in_data[selected_wavelength])
+        print(bounds)
     else:
         bounds = json.load(bounds_file)
 
@@ -101,9 +103,14 @@ def save_data(processed_data, out_folder):
     # returns the timestamp of associated with the highest concentration
     index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
 
+    concentration = processed_data["fit_curve_values"][0]
     fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
     absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
     residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
+
+    plt.plot(concentration.index, concentration)
+    plt.savefig(out_folder / "concentrations.png")
+    plt.cla()
 
 
     fig = plt.figure(constrained_layout=True)
@@ -117,6 +124,9 @@ def save_data(processed_data, out_folder):
     ax2.plot(absorption.index, absorption)
     plt.savefig(out_folder / "results.png")
     plt.cla()
+
+    
+
 
 
 def run_bounds_picker(data):
