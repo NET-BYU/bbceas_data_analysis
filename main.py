@@ -41,6 +41,9 @@ def analyze(in_data, cross_sections, out_folder, bounds_file):
 
     processed_data = processing.analyze(in_data, bounds, cross_sections)
 
+    print(processed_data)
+    exit()
+
     save_data(processed_data, out_folder)
 
 

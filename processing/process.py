@@ -1,4 +1,5 @@
 import arrow
+import pandas as pd
 from scipy import optimize
 
 from . import rayleigh
@@ -31,29 +32,49 @@ def analyze(samples, bounds, cross_sections):
         cavityLength=CAVITY_LENGTH,
     )
 
-    absorption = get_absorption(
-        reflectivity=reflectivity,
-        N2_mean=bounded_samples["N2"],
-        target_mean=bounded_samples["target"],
-        samples=samples,
-        target_dens=densities["N2"],
-        cavityLength=CAVITY_LENGTH,
-    )
+    absorption_all = pd.DataFrame()
+    fit_data_all = pd.DataFrame()
+    fit_curve_values_all = pd.DataFrame()
+    time_stamps = []
+    for index in bounded_samples["target"].index:
+        time_stamps.append(index)
+        # make reflect and abs df and append results to each
+        absorption = get_absorption(
+            reflectivity=reflectivity,
+            N2_mean=bounded_samples["N2"],
+            target=bounded_samples["target"].loc[[index]].squeeze(),
+            target_dens=densities["N2"],
+            cavityLength=CAVITY_LENGTH,
+            )
+        # concat indiv sample absorption to the df of all of the samples absorptions
+        absorption_all = pd.concat([absorption_all, absorption], axis=1)
 
-    x_data = absorption.index.to_numpy()
-    y_data = absorption.to_numpy()
-    fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
+        x_data = absorption.index.to_numpy()
+        y_data = absorption.to_numpy()
+        fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
 
-    residues = fit_data - absorption
+        fit_data_all = pd.concat([fit_data_all, fit_data], axis=1)
+        fit_curve_values_all = pd.concat([fit_curve_values_all, pd.Series(fit_curve_values)], axis=1)
+
+    absorption_all = absorption_all.T
+    absorption_all.index = time_stamps
+
+    fit_data_all = fit_data_all.T
+    fit_data_all.index = time_stamps
+
+    fit_curve_values_all = fit_curve_values_all.T
+    fit_curve_values_all.index = time_stamps
+
+    residuals_all = fit_data_all - absorption_all
 
     return {
         "samples": samples,
         "reflectivity": reflectivity,
-        "absorption": absorption,
+        "absorption": absorption_all,
         "cross_sections": cross_sections,
-        "fit_data": fit_data,
-        "fit_curve_values": fit_curve_values,
-        "residues": residues,
+        "fit_data": fit_data_all,
+        "fit_curve_values": fit_curve_values_all,
+        "residues": residuals_all,
     }
 
 
@@ -74,11 +95,12 @@ def bound_samples(samples, bounds):
             )
         ]
 
-    # Take the mean of wavelengths over time
+
+    # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
     bounded_samples = {
         "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
         "He": bounds_data["He"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
-        "target": bounds_data["target"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
+        "target": bounds_data["target"].sub(bounds_data["dark"].mean(axis=0), axis=1),
     }
 
     return bounded_samples
@@ -106,14 +128,14 @@ def get_reflectivity(samples, He_mean, N2_mean, He_dens, N2_dens, cavityLength=9
 
 
 def get_absorption(
-    reflectivity, N2_mean, target_mean, samples, target_dens, cavityLength=96.6
+    reflectivity, N2_mean, target, target_dens, cavityLength=96.6
 ):
     absorb = rayleigh.Calculate_alpha(
         d0=cavityLength,
         Reflectivity=reflectivity,
         Ref=N2_mean,
-        Spec=target_mean,
-        wl=samples.columns,
+        Spec=target,
+        wl=target.index,
         density_gas=target_dens,
     )
     return absorb
