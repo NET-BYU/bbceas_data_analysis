@@ -74,7 +74,7 @@ def analyze(samples, bounds, cross_sections):
         "cross_sections": cross_sections,
         "fit_data": fit_data_all,
         "fit_curve_values": fit_curve_values_all,
-        "residues": residuals_all,
+        "residuals": residuals_all,
     }
 
 
