@@ -36,6 +36,7 @@ def analyze(in_data, cross_sections, out_folder, bounds_file):
         wavelengths = in_data.columns
         selected_wavelength = wavelengths[(wavelengths > 308) & (wavelengths < 312)][0]
         bounds = run_bounds_picker(in_data[selected_wavelength])
+        print(bounds)
     else:
         bounds = json.load(bounds_file)
 
@@ -98,9 +99,17 @@ def save_data(processed_data, out_folder):
     plt.savefig(out_folder / "cross_sections.png")
     plt.cla()
 
-    fitted_data = processed_data["fit_data"]
-    absorption = processed_data["absorption"]
-    residues = processed_data["residues"]
+    # returns the timestamp of associated with the highest concentration
+    index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
+
+    concentration = processed_data["fit_curve_values"][0]
+    fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
+    absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
+    residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
+
+    plt.plot(concentration.index, concentration)
+    plt.savefig(out_folder / "concentrations.png")
+    plt.cla()
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(3, 1, figure=fig)
@@ -108,7 +117,7 @@ def save_data(processed_data, out_folder):
     ax1 = fig.add_subplot(gs[0, :])
     ax2 = fig.add_subplot(gs[1:, :])
 
-    ax1.plot(residues.index, residues, ".-")
+    ax1.plot(residuals.index, residuals, ".-")
     ax2.plot(fitted_data.index, fitted_data)
     ax2.plot(absorption.index, absorption)
     plt.savefig(out_folder / "results.png")
