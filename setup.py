@@ -56,7 +56,7 @@ setup_info = dict(
     ],
 
     # Package info
-    packages=['BBCEAS'] + ['BBCEAS.' + pkg for pkg in find_packages('BBCEAS')],
+   # packages=['BBCEAS'] + ['BBCEAS.' + pkg for pkg in find_packages('BBCEAS')],
 
     # Add _ prefix to the names of temporary build dirs
     options={'build': {'build_base': '_build'}, },
