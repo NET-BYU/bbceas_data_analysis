@@ -26,9 +26,45 @@ if "install" in sys.argv:
             # command is run, so it's more likely to be seen.
             overlay_warning = True
             break
+          
+setup_info = dict(
+    name='BBCEAS',
+    version=info'1.0.0',
+    author='Net Lab',
+    url='https://netlab.byu.edu/',
+    download_url='https://github.com/NET-BYU/bbceas_data_analysis',
+    description='Analysis and data collection for BBCEAS monitoring',
+    license='BSD',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: MacOS X',
+        'Environment :: Win32 (MS Windows)',
+        'Environment :: X11 Applications',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Topic :: Games/Entertainment',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
+
+    # Package info
+    packages=['bbceas'] + ['bbceas.' + pkg for pkg in find_packages('bbceas')],
+
+    # Add _ prefix to the names of temporary build dirs
+    options={'build': {'build_base': '_build'}, },
+    zip_safe=True,
+)
 
 
-setup()
+
+setup(**setup_info)
 
 
 if overlay_warning:
