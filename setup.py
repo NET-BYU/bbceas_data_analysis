@@ -55,7 +55,7 @@ setup_info = dict(
     ],
 
     # Package info
-    packages=['bbceas'] + ['bbceas.' + pkg for pkg in find_packages('bbceas')],
+    packages=['BBCEAS'] + ['BBCEAS.' + pkg for pkg in find_packages('BBCEAS')],
 
     # Add _ prefix to the names of temporary build dirs
     options={'build': {'build_base': '_build'}, },
@@ -80,7 +80,7 @@ previous version that have since been removed from
 BBCEAS. This is known to cause a variety of problems. You
 should manually remove the
 %(existing_path)s
-directory and re-install Django.
+directory and re-install BBCEAS.
 """
         % {"existing_path": existing_path}
     )
