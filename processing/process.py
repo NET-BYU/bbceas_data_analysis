@@ -8,11 +8,6 @@ CAVITY_LENGTH = 96.6
 
 
 def analyze(samples, bounds, cross_sections):
-    # TODO: the length of cross_sections is not the same as the number of columns of samples
-    # TODO: Callum said they should be the same length. Why are they not?
-    # TODO: This is a temporary fix to drop one of the rows of cross_sections
-    cross_sections = cross_sections.drop(cross_sections.tail(1).index)
-
     # Replace sample's wavelength with the cross_section's wavelength
     samples.columns = cross_sections.index
 
@@ -45,7 +40,7 @@ def analyze(samples, bounds, cross_sections):
             target=bounded_samples["target"].loc[[index]].squeeze(),
             target_dens=densities["N2"],
             cavityLength=CAVITY_LENGTH,
-            )
+        )
         # concat indiv sample absorption to the df of all of the samples absorptions
         absorption_all = pd.concat([absorption_all, absorption], axis=1)
 
@@ -54,7 +49,9 @@ def analyze(samples, bounds, cross_sections):
         fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
 
         fit_data_all = pd.concat([fit_data_all, fit_data], axis=1)
-        fit_curve_values_all = pd.concat([fit_curve_values_all, pd.Series(fit_curve_values)], axis=1)
+        fit_curve_values_all = pd.concat(
+            [fit_curve_values_all, pd.Series(fit_curve_values)], axis=1
+        )
 
     absorption_all = absorption_all.T
     absorption_all.index = time_stamps
@@ -95,7 +92,6 @@ def bound_samples(samples, bounds):
             )
         ]
 
-
     # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
     bounded_samples = {
         "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
@@ -127,9 +123,7 @@ def get_reflectivity(samples, He_mean, N2_mean, He_dens, N2_dens, cavityLength=9
     return reflectivity
 
 
-def get_absorption(
-    reflectivity, N2_mean, target, target_dens, cavityLength=96.6
-):
+def get_absorption(reflectivity, N2_mean, target, target_dens, cavityLength=96.6):
     absorb = rayleigh.Calculate_alpha(
         d0=cavityLength,
         Reflectivity=reflectivity,
