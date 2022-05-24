@@ -29,7 +29,7 @@ if "install" in sys.argv:
           
 setup_info = dict(
     name='BBCEAS',
-    version=info'1.0.0',
+    version='1.0.0',
     author='Net Lab',
     url='https://netlab.byu.edu/',
     download_url='https://github.com/NET-BYU/bbceas_data_analysis',
