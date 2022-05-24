@@ -1,5 +1,4 @@
 import json
-from msilib.schema import ControlEvent
 from pathlib import Path
 
 import arrow
@@ -112,7 +111,6 @@ def save_data(processed_data, out_folder):
     plt.savefig(out_folder / "concentrations.png")
     plt.cla()
 
-
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(3, 1, figure=fig)
 
@@ -124,9 +122,6 @@ def save_data(processed_data, out_folder):
     ax2.plot(absorption.index, absorption)
     plt.savefig(out_folder / "results.png")
     plt.cla()
-
-    
-
 
 
 def run_bounds_picker(data):
