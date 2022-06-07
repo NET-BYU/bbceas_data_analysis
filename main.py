@@ -55,39 +55,13 @@ def analyze(in_data, cross_sections, out_folder, bounds_file):
 )
 def import_data(in_folder, out_data, format):
     if format == "asc":
-        data = process_asc(in_folder)
+        data = bbceas_processing.utils.process_asc(in_folder)
     else:
         print(f"Unknown format: {format}")
         exit(1)
 
     data = data.sort_index()
     data.to_pickle(out_data)
-
-
-def process_asc(folder):
-    folder = Path(folder)
-
-    files = [file for file in folder.iterdir() if file.suffix == ".asc"]
-    data = [asc_to_df(file) for file in files]
-
-    index, data = zip(*data)
-    return pd.DataFrame(data, index=index)
-
-
-def asc_to_df(filename):
-    with open(filename) as f:
-        lines = f.readlines()
-
-        # First line contains the timestamp
-        timestamp = lines[0].split(":", 1)[1].strip()
-        timestamp = arrow.get(timestamp, "ddd MMM DD HH:mm:ss.S YYYY").datetime
-
-        # Get the data from the rest of the file
-        index, data = zip(*[line.strip().split("\t", 1) for line in lines[32:]])
-        index = map(float, index)
-        data = map(float, data)
-
-        return timestamp, pd.Series(data=data, index=index)
 
 
 def save_data(processed_data, out_folder):
