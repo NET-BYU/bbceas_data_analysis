@@ -6,6 +6,8 @@ from . import rayleigh
 
 CAVITY_LENGTH = 96.6
 
+# TODO: fix get_reflectiity
+
 
 def analyze(samples, bounds, cross_sections, instrument_type):
     # Replace sample's wavelength with the cross_section's wavelength
@@ -25,6 +27,7 @@ def analyze(samples, bounds, cross_sections, instrument_type):
         He_dens=densities["He"],
         N2_dens=densities["N2"],
         cavityLength=CAVITY_LENGTH,
+        instrument_type=instrument_type,
     )
 
     absorption_all = pd.DataFrame()
@@ -122,15 +125,21 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
-def get_reflectivity(samples, He_mean, N2_mean, He_dens, N2_dens, cavityLength=96.6):
-    reflectivity = rayleigh.Reflectivity_single(
-        d0=cavityLength,
-        wl=samples.columns,
-        He=He_mean,
-        N2=N2_mean,
-        density_N2=N2_dens,
-        density_He=He_dens,
-    )
+def get_reflectivity(
+    samples, He_mean, N2_mean, He_dens, N2_dens, instrument_type, cavityLength=96.6
+):
+    if instrument_type == "fabry-perot":
+        # TODO: call the reflectivity
+        pass
+    else:
+        reflectivity = rayleigh.Reflectivity_single(
+            d0=cavityLength,
+            wl=samples.columns,
+            He=He_mean,
+            N2=N2_mean,
+            density_N2=N2_dens,
+            density_He=He_dens,
+        )
     return reflectivity
 
 
