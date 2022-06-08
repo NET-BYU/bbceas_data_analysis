@@ -23,8 +23,9 @@ def cli():
 @click.argument("in_data", type=click.File())
 @click.argument("cross_sections", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
+@click.option("-i", "--instrument_type")
 @click.option("-b", "--bounds_file", type=click.File())
-def analyze(in_data, cross_sections, out_folder, bounds_file):
+def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
@@ -35,12 +36,15 @@ def analyze(in_data, cross_sections, out_folder, bounds_file):
         # Pick a specific wavelength for the bounds picker to display
         wavelengths = in_data.columns
         selected_wavelength = wavelengths[(wavelengths > 308) & (wavelengths < 312)][0]
-        bounds = run_bounds_picker(in_data[selected_wavelength])
+        bounds = run_bounds_picker(in_data[selected_wavelength], instrument_type)
         print(bounds)
     else:
         bounds = json.load(bounds_file)
 
-    processed_data = bbceas_processing.analyze(in_data, bounds, cross_sections)
+    processed_data = bbceas_processing.analyze(
+        in_data, bounds, cross_sections, instrument_type
+    )
+    print(processed_data)
 
     save_data(processed_data, out_folder)
 
@@ -98,7 +102,7 @@ def save_data(processed_data, out_folder):
     plt.cla()
 
 
-def run_bounds_picker(data):
+def run_bounds_picker(data, instrument_type):
     from collections import defaultdict
 
     bounds = defaultdict(lambda: [None, None])
@@ -109,11 +113,17 @@ def run_bounds_picker(data):
     fig.update_yaxes(title_text="Intensity")
     fig.update_layout(dragmode="select", hovermode=False)
 
-    app.layout = html.Div(
-        [
-            dcc.Location(id="url", refresh=False),
-            dcc.Graph(id="one-wavelength", figure=fig),
-            html.Br(),
+    if instrument_type == "fabry-perot":
+        radio_items = dcc.RadioItems(
+            id="radio-select",
+            options=[
+                {"label": "Dark Count   ", "value": "darkcounts"},
+                {"label": "Calibration   ", "value": "Calibration"},
+                {"label": "Target Sample", "value": "Target"},
+            ],
+        )
+    else:
+        radio_items = (
             dcc.RadioItems(
                 id="radio-select",
                 options=[
@@ -124,6 +134,14 @@ def run_bounds_picker(data):
                 ],
                 value="N2_Left",
             ),
+        )
+
+    app.layout = html.Div(
+        [
+            dcc.Location(id="url", refresh=False),
+            dcc.Graph(id="one-wavelength", figure=fig),
+            html.Br(),
+            radio_items,
             html.Div(id="placeholder"),
             html.Br(),
             html.Link("Analyze Data", href="/analyze"),
@@ -141,18 +159,28 @@ def run_bounds_picker(data):
     def getSelection(radio_select, graph_select):
         nonlocal bounds
         ran = graph_select["range"]["x"]
+
         if radio_select == "darkcounts":
             bounds["dark"][0] = ran[0]
             bounds["dark"][1] = ran[1]
-        if radio_select == "N2":
-            bounds["N2"][0] = ran[0]
-            bounds["N2"][1] = ran[1]
-        if radio_select == "He":
-            bounds["He"][0] = ran[0]
-            bounds["He"][1] = ran[1]
+
         if radio_select == "Target":
             bounds["target"][0] = ran[0]
             bounds["target"][1] = ran[1]
+
+        if instrument_type == "fabry-perot":
+            if radio_select == "Calibration":
+                bounds["calibration"][0] = ran[0]
+                bounds["calibration"][1] = ran[1]
+
+        else:
+            if radio_select == "N2":
+                bounds["N2"][0] = ran[0]
+                bounds["N2"][1] = ran[1]
+            if radio_select == "He":
+                bounds["He"][0] = ran[0]
+                bounds["He"][1] = ran[1]
+
         return ""
 
     def shutdown():

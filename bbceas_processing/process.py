@@ -7,14 +7,14 @@ from . import rayleigh
 CAVITY_LENGTH = 96.6
 
 
-def analyze(samples, bounds, cross_sections):
+def analyze(samples, bounds, cross_sections, instrument_type):
     # Replace sample's wavelength with the cross_section's wavelength
     samples.columns = cross_sections.index
 
     # Select wavelengths we care about (306 - 312)
     samples, cross_sections = select_wavelengths(samples, cross_sections, 306, 312)
 
-    bounded_samples = bound_samples(samples, bounds)
+    bounded_samples = bound_samples(samples, bounds, instrument_type)
 
     densities = get_densities()
 
@@ -82,7 +82,7 @@ def select_wavelengths(samples, cross_sections, low_bound, high_bound):
     return samples[wavelengths], cross_sections.loc[wavelengths]
 
 
-def bound_samples(samples, bounds):
+def bound_samples(samples, bounds, instrument_type):
     bounds_data = {}
     for key, value in bounds.items():
         bounds_data[key] = samples[
@@ -92,12 +92,23 @@ def bound_samples(samples, bounds):
             )
         ]
 
-    # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
-    bounded_samples = {
-        "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
-        "He": bounds_data["He"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
-        "target": bounds_data["target"].sub(bounds_data["dark"].mean(axis=0), axis=1),
-    }
+    if instrument_type == "fabry-perot":
+        bounded_samples = {
+            "calibration": bounds_data["calibration"].mean(axis=0)
+            - bounds_data["dark"].mean(axis=0),
+            "target": bounds_data["target"].sub(
+                bounds_data["dark"].mean(axis=0), axis=1
+            ),
+        }
+    else:
+        # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
+        bounded_samples = {
+            "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
+            "He": bounds_data["He"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
+            "target": bounds_data["target"].sub(
+                bounds_data["dark"].mean(axis=0), axis=1
+            ),
+        }
 
     return bounded_samples
 
