@@ -20,7 +20,7 @@ def asc_to_df(filename):
 
         # First line contains the timestamp
         timestamp = lines[0].split(":", 1)[1].strip()
-        timestamp = arrow.get(timestamp, "ddd MMM DD HH:mm:ss.S YYYY").datetime
+        timestamp = arrow.get(timestamp, "ddd MMM D HH:mm:ss.S YYYY").datetime
 
         # Get the data from the rest of the file
         index, data = zip(*[line.strip().split("\t", 1) for line in lines[32:]])
