@@ -109,6 +109,4 @@ def Calculate_alpha(d0, Reflectivity, Ref, Spec, wl, density_gas):
     return alpha
 
 
-def reflectivity_fabre(i0, i1, l):
-    reflectivity = 1-((i1/(i0-i1))*l)
-    return reflectivity
+

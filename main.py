@@ -1,3 +1,4 @@
+from email.policy import default
 import json
 from pathlib import Path
 
@@ -23,7 +24,12 @@ def cli():
 @click.argument("in_data", type=click.File())
 @click.argument("cross_sections", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
-@click.option("-i", "--instrument_type")
+@click.option(
+    "-i",
+    "--instrument_type",
+    type=click.Choice(["open-cavity", "fabry-perot"], case_sensitive=False),
+    default="open-cavity",
+)
 @click.option("-b", "--bounds_file", type=click.File())
 def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
     # Load data

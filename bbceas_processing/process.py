@@ -3,31 +3,35 @@ import pandas as pd
 from scipy import optimize
 
 from . import rayleigh
+from . import fabry_perot_data
+from . import open_cavity_data
 
 CAVITY_LENGTH = 96.6
 
-# TODO: fix get_reflectiity
-
 
 def analyze(samples, bounds, cross_sections, instrument_type):
+    if instrument_type == "fabry-perot":
+        instrument = fabry_perot_data.FabryPerotData()
+    elif instrument_type == "open-cavity":
+        instrument = open_cavity_data.OpenCavityData()
+
     # Replace sample's wavelength with the cross_section's wavelength
     samples.columns = cross_sections.index
 
     # Select wavelengths we care about (306 - 312)
     samples, cross_sections = select_wavelengths(samples, cross_sections, 306, 312)
 
-    bounded_samples = bound_samples(samples, bounds, instrument_type)
+    bounded_samples = instrument.bound_samples(samples, bounds)
 
-    densities = get_densities()
+    densities = instrument.get_densities()
 
-    reflectivity = get_reflectivity(
+    reflectivity = instrument.get_reflectivity(
         samples,
         He_mean=bounded_samples["He"],
         N2_mean=bounded_samples["N2"],
         He_dens=densities["He"],
         N2_dens=densities["N2"],
         cavityLength=CAVITY_LENGTH,
-        instrument_type=instrument_type,
     )
 
     absorption_all = pd.DataFrame()
@@ -37,7 +41,7 @@ def analyze(samples, bounds, cross_sections, instrument_type):
     for index in bounded_samples["target"].index:
         time_stamps.append(index)
         # make reflect and abs df and append results to each
-        absorption = get_absorption(
+        absorption = instrument.get_absorption(
             reflectivity=reflectivity,
             N2_mean=bounded_samples["N2"],
             target=bounded_samples["target"].loc[[index]].squeeze(),
@@ -85,35 +89,35 @@ def select_wavelengths(samples, cross_sections, low_bound, high_bound):
     return samples[wavelengths], cross_sections.loc[wavelengths]
 
 
-def bound_samples(samples, bounds, instrument_type):
-    bounds_data = {}
-    for key, value in bounds.items():
-        bounds_data[key] = samples[
-            (
-                (samples.index > arrow.get(value[0]).datetime)
-                & (samples.index < arrow.get(value[1]).datetime)
-            )
-        ]
+# def bound_samples(samples, bounds, instrument_type):
+#     bounds_data = {}
+#     for key, value in bounds.items():
+#         bounds_data[key] = samples[
+#             (
+#                 (samples.index > arrow.get(value[0]).datetime)
+#                 & (samples.index < arrow.get(value[1]).datetime)
+#             )
+#         ]
 
-    if instrument_type == "fabry-perot":
-        bounded_samples = {
-            "calibration": bounds_data["calibration"].mean(axis=0)
-            - bounds_data["dark"].mean(axis=0),
-            "target": bounds_data["target"].sub(
-                bounds_data["dark"].mean(axis=0), axis=1
-            ),
-        }
-    else:
-        # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
-        bounded_samples = {
-            "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
-            "He": bounds_data["He"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
-            "target": bounds_data["target"].sub(
-                bounds_data["dark"].mean(axis=0), axis=1
-            ),
-        }
+#     if instrument_type == "fabry-perot":
+#         bounded_samples = {
+#             "calibration": bounds_data["calibration"].mean(axis=0)
+#             - bounds_data["dark"].mean(axis=0),
+#             "target": bounds_data["target"].sub(
+#                 bounds_data["dark"].mean(axis=0), axis=1
+#             ),
+#         }
+#     else:
+#         # Take the mean of wavelengths over time for N2 and He and subtract the darkcounts from each N2, He, and the target samples
+#         bounded_samples = {
+#             "N2": bounds_data["N2"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
+#             "He": bounds_data["He"].mean(axis=0) - bounds_data["dark"].mean(axis=0),
+#             "target": bounds_data["target"].sub(
+#                 bounds_data["dark"].mean(axis=0), axis=1
+#             ),
+#         }
 
-    return bounded_samples
+#     return bounded_samples
 
 
 def get_densities():
@@ -125,34 +129,34 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
-def get_reflectivity(
-    samples, He_mean, N2_mean, He_dens, N2_dens, instrument_type, cavityLength=96.6
-):
-    if instrument_type == "fabry-perot":
-        # TODO: call the reflectivity
-        pass
-    else:
-        reflectivity = rayleigh.Reflectivity_single(
-            d0=cavityLength,
-            wl=samples.columns,
-            He=He_mean,
-            N2=N2_mean,
-            density_N2=N2_dens,
-            density_He=He_dens,
-        )
-    return reflectivity
+# def get_reflectivity(
+#     samples, He_mean, N2_mean, He_dens, N2_dens, instrument_type, cavityLength=96.6
+# ):
+#     if instrument_type == "fabry-perot":
+#         # TODO: call the reflectivity
+#         pass
+#     else:
+#         reflectivity = rayleigh.Reflectivity_single(
+#             d0=cavityLength,
+#             wl=samples.columns,
+#             He=He_mean,
+#             N2=N2_mean,
+#             density_N2=N2_dens,
+#             density_He=He_dens,
+#         )
+#     return reflectivity
 
 
-def get_absorption(reflectivity, N2_mean, target, target_dens, cavityLength=96.6):
-    absorb = rayleigh.Calculate_alpha(
-        d0=cavityLength,
-        Reflectivity=reflectivity,
-        Ref=N2_mean,
-        Spec=target,
-        wl=target.index,
-        density_gas=target_dens,
-    )
-    return absorb
+# def get_absorption(reflectivity, N2_mean, target, target_dens, cavityLength=96.6):
+#     absorb = rayleigh.Calculate_alpha(
+#         d0=cavityLength,
+#         Reflectivity=reflectivity,
+#         Ref=N2_mean,
+#         Spec=target,
+#         wl=target.index,
+#         density_gas=target_dens,
+#     )
+#     return absorb
 
 
 def fit_curve(cross_sections, xdata, ydata):
