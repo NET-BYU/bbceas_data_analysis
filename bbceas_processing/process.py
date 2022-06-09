@@ -25,14 +25,7 @@ def analyze(samples, bounds, cross_sections, instrument_type):
 
     densities = instrument.get_densities()
 
-    reflectivity = instrument.get_reflectivity(
-        samples,
-        He_mean=bounded_samples["He"],
-        N2_mean=bounded_samples["N2"],
-        He_dens=densities["He"],
-        N2_dens=densities["N2"],
-        cavityLength=CAVITY_LENGTH,
-    )
+    reflectivity = instrument.get_reflectivity(samples)
 
     absorption_all = pd.DataFrame()
     fit_data_all = pd.DataFrame()
@@ -41,13 +34,7 @@ def analyze(samples, bounds, cross_sections, instrument_type):
     for index in bounded_samples["target"].index:
         time_stamps.append(index)
         # make reflect and abs df and append results to each
-        absorption = instrument.get_absorption(
-            reflectivity=reflectivity,
-            N2_mean=bounded_samples["N2"],
-            target=bounded_samples["target"].loc[[index]].squeeze(),
-            target_dens=densities["N2"],
-            cavityLength=CAVITY_LENGTH,
-        )
+        absorption = instrument.get_absorption(index, reflectivity)
         # concat indiv sample absorption to the df of all of the samples absorptions
         absorption_all = pd.concat([absorption_all, absorption], axis=1)
 
