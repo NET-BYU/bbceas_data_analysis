@@ -139,7 +139,6 @@ def run_bounds_picker(data, instrument_type):
                 {"label": "Target Sample", "value": "Target"},
             ],
         )
-    
     app.layout = html.Div(
         [
             dcc.Location(id="url", refresh=False),
