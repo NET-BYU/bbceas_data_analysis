@@ -27,11 +27,12 @@ def cli():
 @click.option(
     "-i",
     "--instrument_type",
-    type=click.Choice(["open-cavity", "fabry-perot"], case_sensitive=False),
-    default="open-cavity",
+    type=click.Choice(["open-cavity", "closed-cavity"], case_sensitive=False),
+    default="closed-cavity",
 )
 @click.option("-b", "--bounds_file", type=click.File())
 def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
+
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
@@ -53,7 +54,6 @@ def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
     print(processed_data)
 
     save_data(processed_data, out_folder)
-
 
 @cli.command(name="import")
 @click.argument(
@@ -119,7 +119,18 @@ def run_bounds_picker(data, instrument_type):
     fig.update_yaxes(title_text="Intensity")
     fig.update_layout(dragmode="select", hovermode=False)
 
-    if instrument_type == "fabry-perot":
+    if instrument_type == "closed-cavity":
+        radio_items = dcc.RadioItems(
+            id="radio-select",
+            options=[
+                {"label": "Dark Count   ", "value": "darkcounts"},
+                {"label": "N2   ", "value": "N2"},
+                {"label": "He   ", "value": "He"},
+                {"label": "Target Sample", "value": "Target"},
+            ],
+        )
+
+    if instrument_type == "open-cavity":
         radio_items = dcc.RadioItems(
             id="radio-select",
             options=[
@@ -128,20 +139,7 @@ def run_bounds_picker(data, instrument_type):
                 {"label": "Target Sample", "value": "Target"},
             ],
         )
-    else:
-        radio_items = (
-            dcc.RadioItems(
-                id="radio-select",
-                options=[
-                    {"label": "Dark Count   ", "value": "darkcounts"},
-                    {"label": "N2   ", "value": "N2"},
-                    {"label": "He   ", "value": "He"},
-                    {"label": "Target Sample", "value": "Target"},
-                ],
-                value="N2_Left",
-            ),
-        )
-
+    
     app.layout = html.Div(
         [
             dcc.Location(id="url", refresh=False),
@@ -164,6 +162,7 @@ def run_bounds_picker(data, instrument_type):
     )
     def getSelection(radio_select, graph_select):
         nonlocal bounds
+        nonlocal instrument_type
         ran = graph_select["range"]["x"]
 
         if radio_select == "darkcounts":
@@ -174,12 +173,12 @@ def run_bounds_picker(data, instrument_type):
             bounds["target"][0] = ran[0]
             bounds["target"][1] = ran[1]
 
-        if instrument_type == "fabry-perot":
+        if instrument_type == "open-cavity":
             if radio_select == "Calibration":
                 bounds["calibration"][0] = ran[0]
                 bounds["calibration"][1] = ran[1]
 
-        else:
+        if instrument_type == "closed-cavity":
             if radio_select == "N2":
                 bounds["N2"][0] = ran[0]
                 bounds["N2"][1] = ran[1]

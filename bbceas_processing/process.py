@@ -3,15 +3,15 @@ import pandas as pd
 from scipy import optimize
 
 from . import rayleigh
-from . import fabry_perot_data
+from . import closed_cavity_data
 from . import open_cavity_data
 
-CAVITY_LENGTH = 96.6
+
 
 
 def analyze(samples, bounds, cross_sections, instrument_type):
-    if instrument_type == "fabry-perot":
-        instrument = fabry_perot_data.FabryPerotData()
+    if instrument_type == "closed-cavity":
+        instrument = closed_cavity_data.ClosedCavityData()
     elif instrument_type == "open-cavity":
         instrument = open_cavity_data.OpenCavityData()
 
