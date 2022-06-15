@@ -16,6 +16,7 @@ def analyze(samples, bounds, cross_sections, instrument_type):
         instrument = open_cavity_data.OpenCavityData()
 
     # Replace sample's wavelength with the cross_section's wavelength
+    # This should be a redundant call. This should a
     samples.columns = cross_sections.index
 
     # Select wavelengths we care about (306 - 312)

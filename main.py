@@ -1,3 +1,4 @@
+from audioop import cross
 from email.policy import default
 import json
 from pathlib import Path
@@ -38,6 +39,9 @@ def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
 
     # Load cross sections
     cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
+    
+    # Take the wavelengths from the cross-sections before sending to bounds picker 
+    in_data.columns = cross_sections.index
 
     if bounds_file is None:
         # Pick a specific wavelength for the bounds picker to display
