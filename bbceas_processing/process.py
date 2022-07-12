@@ -1,20 +1,11 @@
-import arrow
+import numpy as np
 import pandas as pd
 from scipy import optimize
 
 from . import rayleigh
-from . import closed_cavity_data
-from . import open_cavity_data
 
 
-
-
-def analyze(samples, bounds, cross_sections, instrument_type):
-    if instrument_type == "closed-cavity":
-        instrument = closed_cavity_data.ClosedCavityData()
-    elif instrument_type == "open-cavity":
-        instrument = open_cavity_data.OpenCavityData()
-
+def analyze(samples, bounds, cross_sections, instrument):
     # Replace sample's wavelength with the cross_section's wavelength
     # This should be a redundant call. This should a
     samples.columns = cross_sections.index
@@ -76,6 +67,7 @@ def select_wavelengths(samples, cross_sections, low_bound, high_bound):
 
     return samples[wavelengths], cross_sections.loc[wavelengths]
 
+
 def get_densities():
     # find density of the gasses
     N2_dens = rayleigh.Density_calc(pressure=620, temp_K=298)
@@ -86,9 +78,16 @@ def get_densities():
 
 
 def fit_curve(cross_sections, xdata, ydata):
-
     # the function for curve fitting
     def func(wavelength, concentration, a, b, c):
+        # return (
+        #     cross_sections1[cross_sections1.columns[0]] * concentration1
+        #     + cross_sections2[cross_sections2.columns[0]] * concentration2
+        #     + a * wavelength**2
+        #     + b * wavelength
+        #     + c
+        # )
+
         return (
             cross_sections[cross_sections.columns[0]] * concentration
             + a * wavelength**2
@@ -96,11 +95,13 @@ def fit_curve(cross_sections, xdata, ydata):
             + c
         )
 
+    bounds = ([0, 0, np.inf, np.inf, np.inf], np.inf)
+
     # inital guess
     p0 = [1.34e12, 1, 1, 1]
 
     popt, pcov = optimize.curve_fit(
-        f=func, xdata=xdata, ydata=ydata, check_finite=True, p0=p0
+        f=func, xdata=xdata, ydata=ydata, check_finite=True, p0=p0, bounds=bounds
     )
 
     return func(xdata, *popt), popt

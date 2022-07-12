@@ -33,14 +33,13 @@ def cli():
 )
 @click.option("-b", "--bounds_file", type=click.File())
 def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
-
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
     # Load cross sections
     cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
-    
-    # Take the wavelengths from the cross-sections before sending to bounds picker 
+
+    # Take the wavelengths from the cross-sections before sending to bounds picker
     in_data.columns = cross_sections.index
 
     if bounds_file is None:
@@ -52,12 +51,18 @@ def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
     else:
         bounds = json.load(bounds_file)
 
+    if instrument_type == "closed-cavity":
+        instrument = bbceas_processing.closed_cavity_data.ClosedCavityData()
+    elif instrument_type == "open-cavity":
+        instrument = bbceas_processing.open_cavity_data.OpenCavityData()
+
     processed_data = bbceas_processing.analyze(
-        in_data, bounds, cross_sections, instrument_type
+        in_data, bounds, cross_sections, instrument
     )
     print(processed_data)
 
     save_data(processed_data, out_folder)
+
 
 @cli.command(name="import")
 @click.argument(
