@@ -31,3 +31,12 @@ Options:
   -b, --bounds_file FILENAME
   --help                      Show this message and exit.
 ```
+
+
+```mermaid
+  graph TD;
+      A-->B;
+      A-->C;
+      B-->D;
+      C-->D;
+```
