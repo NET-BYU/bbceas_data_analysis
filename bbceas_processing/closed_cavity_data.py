@@ -36,9 +36,10 @@ class ClosedCavityData:
 
         return {"N2": self.N2_dens, "He": self.He_dens, "target": self.target_dens}
 
+    # TODO: consider consolodating the next four functions
     def get_reflectivity(self, samples):
 
-        self.reflectivity = rayleigh.Reflectivity_single(
+        self.reflectivity = self._reflectivity_single(
             d0=CAVITY_LENGTH,
             wl=samples.columns,
             He=self.bounded_samples["He"],
@@ -49,7 +50,7 @@ class ClosedCavityData:
         return self.reflectivity
 
     def get_absorption(self, index, reflectivity):
-        absorb = rayleigh.Calculate_alpha(
+        absorb = self._calculate_alpha(
             d0=CAVITY_LENGTH,
             Reflectivity=reflectivity,
             Ref=self.bounded_samples["N2"],
@@ -58,3 +59,21 @@ class ClosedCavityData:
             density_gas=self.N2_dens,
         )
         return absorb
+
+    def _reflectivity_single(self, d0, wl, He, N2, density_N2, density_He):
+        Scat_He = rayleigh.Rayleigh_He(wl)
+        Scat_N2 = rayleigh.Rayleigh_N2(wl)
+
+        Reflectivity = 1 - d0 * (
+            (N2 / He * Scat_N2 * density_N2 - Scat_He * density_He) / (1 - N2 / He)
+        )
+
+        return Reflectivity
+
+    def _calculate_alpha(self, d0, Reflectivity, Ref, Spec, wl, density_gas):
+        Scat_Air = rayleigh.Rayleigh_Air(wl)
+        alpha = ((1 - Reflectivity) / d0 + density_gas * Scat_Air) * (
+            (Ref - Spec) / Spec
+        )
+
+        return alpha

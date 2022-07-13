@@ -3,10 +3,15 @@ import arrow
 from . import rayleigh
 
 CAVITY_LENGTH = 500
-LOSS_OPTIC = .02
+LOSS_OPTIC = 0.02
+
 
 class OpenCavityData:
+<<<<<<< HEAD
     def bound_samples(self,samples, bounds):
+=======
+    def bound_samples(self, samples, bounds):
+>>>>>>> fabreparrot
         bounds_data = {}
         for key, value in bounds.items():
             bounds_data[key] = samples[

@@ -28,6 +28,8 @@ Options:
 Usage: main.py analyze [OPTIONS] IN_DATA CROSS_SECTIONS OUT_FOLDER
 
 Options:
+  -i, --instrument_type [open-cavity|closed-cavity] (defaults to closed-cavity)
   -b, --bounds_file FILENAME
-  --help                      Show this message and exit.
+  --help                          Show this message and exit.
+
 ```
