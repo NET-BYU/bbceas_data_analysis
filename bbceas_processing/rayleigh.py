@@ -91,19 +91,7 @@ def Density_calc(pressure, temp_K):
     return Density_gas
 
 
-def Reflectivity_single(d0, wl, He, N2, density_N2, density_He):
-    Scat_He = Rayleigh_He(wl)
-    Scat_N2 = Rayleigh_N2(wl)
-
-    Reflectivity = 1 - d0 * (
-        (N2 / He * Scat_N2 * density_N2 - Scat_He * density_He) / (1 - N2 / He)
-    )
-
-    return Reflectivity
 
 
-def Calculate_alpha(d0, Reflectivity, Ref, Spec, wl, density_gas):
-    Scat_Air = Rayleigh_Air(wl)
-    alpha = ((1 - Reflectivity) / d0 + density_gas * Scat_Air) * ((Ref - Spec) / Spec)
 
-    return alpha
+
