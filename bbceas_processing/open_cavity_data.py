@@ -6,7 +6,7 @@ CAVITY_LENGTH = 500
 LOSS_OPTIC = .02
 
 class OpenCavityData:
-    def bound_samples(samples, bounds):
+    def bound_samples(self,samples, bounds):
         bounds_data = {}
         for key, value in bounds.items():
             bounds_data[key] = samples[
