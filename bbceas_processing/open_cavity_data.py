@@ -7,11 +7,8 @@ LOSS_OPTIC = 0.02
 
 
 class OpenCavityData:
-<<<<<<< HEAD
     def bound_samples(self,samples, bounds):
-=======
-    def bound_samples(self, samples, bounds):
->>>>>>> fabreparrot
+
         bounds_data = {}
         for key, value in bounds.items():
             bounds_data[key] = samples[

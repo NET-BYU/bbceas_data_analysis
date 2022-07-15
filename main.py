@@ -23,7 +23,8 @@ def cli():
 
 @cli.command()
 @click.argument("in_data", type=click.File())
-@click.argument("cross_sections", type=click.File())
+@click.argument("cross_sections_target", type=click.File())
+@click.argument("cross_sections_2", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(
     "-i",
@@ -32,15 +33,16 @@ def cli():
     default="closed-cavity",
 )
 @click.option("-b", "--bounds_file", type=click.File())
-def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
+def analyze(in_data, cross_sections_target, cross_sections_2, out_folder, instrument_type, bounds_file):
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
     # Load cross sections
-    cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
+    cross_sections_target = pd.read_csv(cross_sections_target, header=None, index_col=0)
+    cross_sections_2 = pd.read_csv(cross_sections_2, header=None, index_col=0)
 
     # Take the wavelengths from the cross-sections before sending to bounds picker
-    in_data.columns = cross_sections.index
+    in_data.columns = cross_sections_target.index
 
     if bounds_file is None:
         # Pick a specific wavelength for the bounds picker to display
@@ -57,7 +59,7 @@ def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
         instrument = bbceas_processing.open_cavity_data.OpenCavityData()
 
     processed_data = bbceas_processing.analyze(
-        in_data, bounds, cross_sections, instrument
+        in_data, bounds, cross_sections_target, cross_sections_2, instrument
     )
     print(processed_data)
 
@@ -87,22 +89,28 @@ def save_data(processed_data, out_folder):
     out_folder = Path(out_folder)
 
     # Save cross section plot
-    cross_sections = processed_data["cross_sections"]
-    plt.plot(cross_sections.index, cross_sections)
-    plt.savefig(out_folder / "cross_sections.png")
+    cross_sections_target = processed_data["cross_sections_target"]
+    plt.plot(cross_sections_target.index, cross_sections_target)
+    plt.savefig(out_folder / "cross_sections_target.png")
     plt.cla()
 
     # returns the timestamp of associated with the highest concentration
     index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
 
-    concentration = processed_data["fit_curve_values"][0]
+    concentration_target = processed_data["fit_curve_values"][0]
+    concentration_2 = processed_data["fit_curve_values"][1]
     fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
     absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
     residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
 
-    plt.plot(concentration.index, concentration)
-    plt.savefig(out_folder / "concentrations.png")
+    plt.plot(concentration_target.index, concentration_target)
+    plt.savefig(out_folder / "concentrations_target.png")
     plt.cla()
+
+    plt.plot(concentration_2.index, concentration_2)
+    plt.savefig(out_folder / "concentrations_secondary.png")
+    plt.cla()
+
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(3, 1, figure=fig)
