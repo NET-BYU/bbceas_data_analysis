@@ -1,3 +1,4 @@
+from audioop import cross
 import numpy as np
 import pandas as pd
 from scipy import optimize
@@ -5,13 +6,13 @@ from scipy import optimize
 from . import rayleigh
 
 
-def analyze(samples, bounds, cross_sections_target, cross_sections_2, instrument):
+def analyze(samples, bounds, cross_sections, instrument):
     # Replace sample's wavelength with the cross_section's wavelength
     # This should be a redundant call. This should a
-    samples.columns = cross_sections_target.index
+    samples.columns = cross_sections[0].index
 
     # Select wavelengths we care about (306 - 312)
-    samples, cross_sections_target, cross_sections_2 = select_wavelengths(samples, cross_sections_target, cross_sections_2, 306, 312)
+    samples, cross_sections = select_wavelengths(samples, cross_sections, 306, 312)
 
     bounded_samples = instrument.bound_samples(samples, bounds)
 
@@ -32,7 +33,7 @@ def analyze(samples, bounds, cross_sections_target, cross_sections_2, instrument
 
         x_data = absorption.index.to_numpy()
         y_data = absorption.to_numpy()
-        fit_data, fit_curve_values = fit_curve(cross_sections_target, cross_sections_2, x_data, y_data)
+        fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
 
         fit_data_all = pd.concat([fit_data_all, fit_data], axis=1)
         fit_curve_values_all = pd.concat(
@@ -54,18 +55,21 @@ def analyze(samples, bounds, cross_sections_target, cross_sections_2, instrument
         "samples": samples,
         "reflectivity": reflectivity,
         "absorption": absorption_all,
-        "cross_sections_target": cross_sections_target,
+        "cross_sections_target": cross_sections[0],
         "fit_data": fit_data_all,
         "fit_curve_values": fit_curve_values_all,
         "residuals": residuals_all,
     }
 
 
-def select_wavelengths(samples, cross_sections, cross_sections_2, low_bound, high_bound):
-    wavelengths = cross_sections.index
+def select_wavelengths(samples, cross_sections, low_bound, high_bound):
+    wavelengths = cross_sections[0].index
     wavelengths = wavelengths[(wavelengths > low_bound) & (wavelengths < high_bound)]
 
-    return samples[wavelengths], cross_sections.loc[wavelengths], cross_sections_2.loc[wavelengths]
+    for section in range(len(cross_sections)):
+        cross_sections[section]=cross_sections[section].loc[wavelengths]
+
+    return samples[wavelengths], cross_sections
 
 
 def get_densities():
@@ -77,29 +81,37 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
-def fit_curve(cross_sections, cross_sections_2, xdata, ydata):
+def fit_curve(cross_sections, xdata, ydata):
     # the function for curve fitting
-    def func(wavelength, concentration, concentration_2, a, b, c):
+    # FIXME: optimize.curve_fit seems to require that func has a fixed number of parameters but since the number of
+    # cross_sections is variable and then the number of concentrations and parameter in func is variable it is freaking out.
+    def func(wavelength, concentration, a, b, c):
+
+        for i in range(len(cross_sections)):
+            section = cross_sections[i]
+            result =+ section[section.columns[0]]*concentration[i]
+
+        result += a * wavelength**2
+        + b * wavelength
+        + c
+        
+        return result
         # return (
-        #     cross_sections1[cross_sections1.columns[0]] * concentration1
-        #     + cross_sections2[cross_sections2.columns[0]] * concentration2
+        #     cross_sections[cross_sections.columns[0]] * concentration
+        #     + cross_sections_2[cross_sections_2.columns[0]] * concentration_2
         #     + a * wavelength**2
         #     + b * wavelength
         #     + c
         # )
 
-        return (
-            cross_sections[cross_sections.columns[0]] * concentration
-            + cross_sections_2[cross_sections_2.columns[0]] * concentration_2
-            + a * wavelength**2
-            + b * wavelength
-            + c
-        )
-
     # bounds = ([0, 0, np.inf, np.inf, np.inf], np.inf)
 
     # inital guess
-    p0 = [1.34e12, 1.34e12, 1, 1, 1]
+    p0=[]
+    for i in cross_sections:
+        p0.append(1.34e12)
+    p0 += [1, 1, 1]
+
 
     popt, pcov = optimize.curve_fit(
         f=func, xdata=xdata, ydata=ydata, check_finite=True, p0=p0

@@ -1,4 +1,5 @@
 from audioop import cross
+from email import header
 from email.policy import default
 import json
 from pathlib import Path
@@ -23,8 +24,8 @@ def cli():
 
 @cli.command()
 @click.argument("in_data", type=click.File())
-@click.argument("cross_sections_target", type=click.File())
-@click.argument("cross_sections_2", type=click.File())
+@click.option("-c","cross_sections_in", type=click.File(), multiple=True)
+# @click.argument("cross_sections_2", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(
     "-i",
@@ -33,16 +34,17 @@ def cli():
     default="closed-cavity",
 )
 @click.option("-b", "--bounds_file", type=click.File())
-def analyze(in_data, cross_sections_target, cross_sections_2, out_folder, instrument_type, bounds_file):
+def analyze(in_data, cross_sections_in, out_folder, instrument_type, bounds_file):
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
-    # Load cross sections
-    cross_sections_target = pd.read_csv(cross_sections_target, header=None, index_col=0)
-    cross_sections_2 = pd.read_csv(cross_sections_2, header=None, index_col=0)
+    # Load in cross sections
+    cross_sections = []
+    for file in cross_sections_in:
+        cross_sections.append(pd.read_csv(file, header=None, index_col=0))
 
     # Take the wavelengths from the cross-sections before sending to bounds picker
-    in_data.columns = cross_sections_target.index
+    in_data.columns = cross_sections[0].index
 
     if bounds_file is None:
         # Pick a specific wavelength for the bounds picker to display
@@ -59,7 +61,7 @@ def analyze(in_data, cross_sections_target, cross_sections_2, out_folder, instru
         instrument = bbceas_processing.open_cavity_data.OpenCavityData()
 
     processed_data = bbceas_processing.analyze(
-        in_data, bounds, cross_sections_target, cross_sections_2, instrument
+        in_data, bounds, cross_sections, instrument
     )
     print(processed_data)
 
