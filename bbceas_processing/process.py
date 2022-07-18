@@ -33,7 +33,7 @@ def analyze(samples, bounds, cross_sections, instrument):
 
         x_data = absorption.index.to_numpy()
         y_data = absorption.to_numpy()
-        fit_data, fit_curve_values = fit_curve(cross_sections, x_data, y_data)
+        fit_data, fit_curve_values = fit_curve_lm(cross_sections, x_data, y_data)
 
         fit_data_all = pd.concat([fit_data_all, fit_data], axis=1)
         fit_curve_values_all = pd.concat(
@@ -65,9 +65,13 @@ def analyze(samples, bounds, cross_sections, instrument):
 def select_wavelengths(samples, cross_sections, low_bound, high_bound):
     wavelengths = cross_sections[0].index
     wavelengths = wavelengths[(wavelengths > low_bound) & (wavelengths < high_bound)]
+    for i in range(len(cross_sections)):
+        cross_sections[i].index = cross_sections[0].index
 
     for section in range(len(cross_sections)):
+        # line below was added because of mismatch in index of multiple cross-sections
         cross_sections[section] = cross_sections[section].loc[wavelengths]
+        print(cross_sections[section])
 
     return samples[wavelengths], cross_sections
 
@@ -81,10 +85,40 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
+def fit_curve_lm(cross_sections, xdata, ydata):
+    import lmfit
+    from matplotlib import pyplot as plt
+
+    cross_sections = cross_sections[0]
+
+    params = lmfit.Parameters()
+    params.add("concentration", value=1.34e12, min=0)
+    params.add("a", value=1)
+    params.add("b", value=1)
+    params.add("c", value=1)
+
+    def func(wavelength, concentration, a, b, c):
+        return (
+            cross_sections[cross_sections.columns[0]] * concentration
+            + a * wavelength**2
+            + b * wavelength
+            + c
+        )
+
+    def residual(params, x, ydata):
+        concentration = params["concentration"]
+        a = params["a"]
+        b = params["b"]
+        c = params["c"]
+        y_fit = func(x, concentration, a, b, c)
+        return y_fit - ydata
+
+    tryme = lmfit.minimize(residual, params, args=(xdata, ydata), method="leastsq")
+    return ydata + tryme.residual
+
+
 def fit_curve(cross_sections, xdata, ydata):
     # the function for curve fitting
-    # FIXME: optimize.curve_fit seems to require that func has a fixed number of parameters but since the number of
-    # cross_sections is variable and then the number of concentrations and parameter in func is variable it is freaking out.
     def func(*args):
 
         params = list(args)
@@ -94,7 +128,7 @@ def fit_curve(cross_sections, xdata, ydata):
         a = params[-3]
         b = params[-2]
         c = params[-1]
-        result = 0
+        result = 0.0
 
         for i in range(len(cross_sections)):
             section = cross_sections[i]
@@ -106,8 +140,6 @@ def fit_curve(cross_sections, xdata, ydata):
 
         return result
 
-    # bounds = ([0, 0, np.inf, np.inf, np.inf], np.inf)
-
     # inital guess
     p0 = []
     for i in cross_sections:
@@ -115,6 +147,10 @@ def fit_curve(cross_sections, xdata, ydata):
     p0 += [1, 1, 1]
 
     popt, pcov = optimize.curve_fit(
-        f=func, xdata=xdata, ydata=ydata, check_finite=True, p0=p0
+        f=func,
+        xdata=xdata,
+        ydata=ydata,
+        check_finite=True,
+        p0=p0,
     )
     return func(xdata, *popt), popt
