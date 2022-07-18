@@ -7,7 +7,10 @@ LOSS_OPTIC = 0.02
 
 
 class OpenCavityData:
-    def bound_samples(self,samples, bounds):
+
+    bound_params = ["dark", "calibration", "target"]
+
+    def bound_samples(self, samples, bounds):
 
         bounds_data = {}
         for key, value in bounds.items():
