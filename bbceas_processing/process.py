@@ -67,7 +67,7 @@ def select_wavelengths(samples, cross_sections, low_bound, high_bound):
     wavelengths = wavelengths[(wavelengths > low_bound) & (wavelengths < high_bound)]
 
     for section in range(len(cross_sections)):
-        cross_sections[section]=cross_sections[section].loc[wavelengths]
+        cross_sections[section] = cross_sections[section].loc[wavelengths]
 
     return samples[wavelengths], cross_sections
 
@@ -85,36 +85,36 @@ def fit_curve(cross_sections, xdata, ydata):
     # the function for curve fitting
     # FIXME: optimize.curve_fit seems to require that func has a fixed number of parameters but since the number of
     # cross_sections is variable and then the number of concentrations and parameter in func is variable it is freaking out.
-    def func(wavelength, concentration, a, b, c):
+    def func(*args):
+
+        params = list(args)
+
+        wavelength = params[0]
+        concentration = params[1:-3]
+        a = params[-3]
+        b = params[-2]
+        c = params[-1]
+        result = 0
 
         for i in range(len(cross_sections)):
             section = cross_sections[i]
-            result =+ section[section.columns[0]]*concentration[i]
+            result += section[section.columns[0]] * concentration[i]
 
         result += a * wavelength**2
-        + b * wavelength
-        + c
-        
+        +b * wavelength
+        +c
+
         return result
-        # return (
-        #     cross_sections[cross_sections.columns[0]] * concentration
-        #     + cross_sections_2[cross_sections_2.columns[0]] * concentration_2
-        #     + a * wavelength**2
-        #     + b * wavelength
-        #     + c
-        # )
 
     # bounds = ([0, 0, np.inf, np.inf, np.inf], np.inf)
 
     # inital guess
-    p0=[]
+    p0 = []
     for i in cross_sections:
         p0.append(1.34e12)
     p0 += [1, 1, 1]
 
-
     popt, pcov = optimize.curve_fit(
         f=func, xdata=xdata, ydata=ydata, check_finite=True, p0=p0
-    )  
-
+    )
     return func(xdata, *popt), popt
