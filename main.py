@@ -24,7 +24,7 @@ def cli():
 
 @cli.command()
 @click.argument("in_data", type=click.File())
-@click.option("-c","cross_sections_in", type=click.File(), multiple=True)
+@click.option("-c", "cross_sections_in", type=click.File(), multiple=True)
 # @click.argument("cross_sections_2", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(
@@ -99,20 +99,19 @@ def save_data(processed_data, out_folder):
     # returns the timestamp of associated with the highest concentration
     index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
 
-    concentration_target = processed_data["fit_curve_values"][0]
-    concentration_2 = processed_data["fit_curve_values"][1]
     fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
     absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
     residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
 
-    plt.plot(concentration_target.index, concentration_target)
-    plt.savefig(out_folder / "concentrations_target.png")
-    plt.cla()
-
-    plt.plot(concentration_2.index, concentration_2)
-    plt.savefig(out_folder / "concentrations_secondary.png")
-    plt.cla()
-
+    for i in range(len(processed_data["fit_curve_values"].columns) - 3):
+        if i == 0:
+            title = "concentrations_target.png"
+        else:
+            title = "concentrations_" + str(i) + ".png"
+        concentration = processed_data["fit_curve_values"][i]
+        plt.plot(concentration.index, concentration)
+        plt.savefig(out_folder / title)
+        plt.cla()
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(3, 1, figure=fig)
