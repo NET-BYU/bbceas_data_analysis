@@ -71,7 +71,6 @@ def select_wavelengths(samples, cross_sections, low_bound, high_bound):
     for section in range(len(cross_sections)):
         # line below was added because of mismatch in index of multiple cross-sections
         cross_sections[section] = cross_sections[section].loc[wavelengths]
-        print(cross_sections[section])
 
     return samples[wavelengths], cross_sections
 
@@ -85,38 +84,92 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
+# Below function relies on lmfit.minimize()
 def fit_curve_lm(cross_sections, xdata, ydata):
     import lmfit
     from matplotlib import pyplot as plt
 
-    cross_sections = cross_sections[0]
-
     params = lmfit.Parameters()
-    params.add("concentration", value=1.34e12, min=0)
+
+    for i in range(len(cross_sections)):
+        name = "concentration" + str(i)
+        if i == 0:
+            params.add("concentration", value=1.34e12, min=0)
+        else:
+            params.add(name, value=1.34e12, min=0)
     params.add("a", value=1)
     params.add("b", value=1)
     params.add("c", value=1)
 
-    def func(wavelength, concentration, a, b, c):
-        return (
-            cross_sections[cross_sections.columns[0]] * concentration
-            + a * wavelength**2
-            + b * wavelength
-            + c
-        )
+    def func(*args):
+
+        params = list(args)
+
+        wavelength = params[0]  # the first param is always the wavelengths(xdata)
+        concentration_param = params[1:-3]  # these params are always the concentrations
+        # The last three params are always the polynomial
+        a = params[-3]
+        b = params[-2]
+        c = params[-1]
+        result = 0.0
+
+        concentration = []
+
+        for i in range(len(concentration_param[0])):
+            concentration.append(concentration_param[0][i].value)
+
+        for i in range(len(cross_sections)):
+            section = cross_sections[i]
+            result += section[section.columns[0]] * concentration[i]
+
+        result += a * wavelength**2
+        +b * wavelength
+        +c
+        return result
+
+    def final_func(*args):
+        params = list(args)
+
+        wavelength = params[0]  # the first param is always the wavelengths(xdata)
+        concentration = params[1:-3]  # these params are always the concentrations
+        # The last three params are always the polynomial
+        a = params[-3]
+        b = params[-2]
+        c = params[-1]
+        result = 0.0
+
+        for i in range(len(cross_sections)):
+            section = cross_sections[i]
+            result += section[section.columns[0]] * concentration[i]
+
+        result += a * wavelength**2
+        +b * wavelength
+        +c
+        return result
 
     def residual(params, x, ydata):
-        concentration = params["concentration"]
+        concentration = []
+
+        for i in range(len(cross_sections)):
+            name = "concentration" + str(i)
+            if i == 0:
+                concentration.append(params["concentration"])
+            else:
+                concentration.append(params[name])
         a = params["a"]
         b = params["b"]
         c = params["c"]
         y_fit = func(x, concentration, a, b, c)
         return y_fit - ydata
 
-    tryme = lmfit.minimize(residual, params, args=(xdata, ydata), method="leastsq")
-    return ydata + tryme.residual
+    fit = lmfit.minimize(residual, params, args=(xdata, ydata), method="leastsq")
+    results = []
+    for key, value in fit.params.valuesdict().items():
+        results.append(value)
+    return final_func(xdata, *results), results
 
 
+# Below function relies soly on scipy.optimize.curve_fit()
 def fit_curve(cross_sections, xdata, ydata):
     # the function for curve fitting
     def func(*args):
