@@ -24,7 +24,7 @@ def cli():
 
 @cli.command()
 @click.argument("in_data", type=click.File())
-@click.option("-c", "cross_sections_in", type=click.File(), multiple=True)
+@click.option("-c", "--cross_sections_in", type=click.File(), multiple=True)
 # @click.argument("cross_sections_2", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(

@@ -102,7 +102,7 @@ def fit_curve_lm(cross_sections, xdata, ydata):
     params.add("c", value=1)
 
     def func(*args):
-
+        # load in the arguments
         params = list(args)
 
         wavelength = params[0]  # the first param is always the wavelengths(xdata)
@@ -114,14 +114,15 @@ def fit_curve_lm(cross_sections, xdata, ydata):
         result = 0.0
 
         concentration = []
-
+        # this loop handles the Parameter objects and puts it into a usable list
+        # final_func omits this for loop.
         for i in range(len(concentration_param[0])):
             concentration.append(concentration_param[0][i].value)
-
+        # multiply each of the cross-sections by its corresponding concentration
         for i in range(len(cross_sections)):
             section = cross_sections[i]
             result += section[section.columns[0]] * concentration[i]
-
+        # add the polynomial
         result += a * wavelength**2
         +b * wavelength
         +c
