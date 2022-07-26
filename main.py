@@ -1,4 +1,5 @@
 from audioop import cross
+from email import header
 from email.policy import default
 import json
 from pathlib import Path
@@ -23,7 +24,8 @@ def cli():
 
 @cli.command()
 @click.argument("in_data", type=click.File())
-@click.argument("cross_sections", type=click.File())
+@click.option("-c", "--cross_sections_in", type=click.File(), multiple=True)
+# @click.argument("cross_sections_2", type=click.File())
 @click.argument("out_folder", type=click.Path(dir_okay=True, file_okay=False))
 @click.option(
     "-i",
@@ -32,15 +34,17 @@ def cli():
     default="closed-cavity",
 )
 @click.option("-b", "--bounds_file", type=click.File())
-def analyze(in_data, cross_sections, out_folder, instrument_type, bounds_file):
+def analyze(in_data, cross_sections_in, out_folder, instrument_type, bounds_file):
     # Load data
     in_data = pd.read_pickle(in_data.name)
 
-    # Load cross sections
-    cross_sections = pd.read_csv(cross_sections, header=None, index_col=0)
+    # Load in cross sections
+    cross_sections = []
+    for file in cross_sections_in:
+        cross_sections.append(pd.read_csv(file, header=None, index_col=0))
 
     # Take the wavelengths from the cross-sections before sending to bounds picker
-    in_data.columns = cross_sections.index
+    in_data.columns = cross_sections[0].index
 
     if bounds_file is None:
         # Pick a specific wavelength for the bounds picker to display
@@ -87,22 +91,27 @@ def save_data(processed_data, out_folder):
     out_folder = Path(out_folder)
 
     # Save cross section plot
-    cross_sections = processed_data["cross_sections"]
-    plt.plot(cross_sections.index, cross_sections)
-    plt.savefig(out_folder / "cross_sections.png")
+    cross_sections_target = processed_data["cross_sections_target"]
+    plt.plot(cross_sections_target.index, cross_sections_target)
+    plt.savefig(out_folder / "cross_sections_target.png")
     plt.cla()
 
     # returns the timestamp of associated with the highest concentration
     index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
 
-    concentration = processed_data["fit_curve_values"][0]
     fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
     absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
     residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
 
-    plt.plot(concentration.index, concentration)
-    plt.savefig(out_folder / "concentrations.png")
-    plt.cla()
+    for i in range(len(processed_data["fit_curve_values"].columns) - 3):
+        if i == 0:
+            title = "concentrations_target.png"
+        else:
+            title = "concentrations_" + str(i) + ".png"
+        concentration = processed_data["fit_curve_values"][i]
+        plt.plot(concentration.index, concentration)
+        plt.savefig(out_folder / title)
+        plt.cla()
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(3, 1, figure=fig)

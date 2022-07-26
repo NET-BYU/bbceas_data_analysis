@@ -7,6 +7,8 @@ CAVITY_LENGTH = 96.6
 
 
 class ClosedCavityData:
+    bound_params = ["dark", "N2", "He", "target"]
+
     def bound_samples(self, samples, bounds):
         bounds_data = {}
         for key, value in bounds.items():

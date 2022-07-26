@@ -7,7 +7,7 @@ python main.py import data/raw_SO2 data/SO2.plk.gz
 This will create a pickled file called SO2.plk.gz in the data directory. You can then analyze the SO2 data by running the following command:
 
 ```bash
-python main.py analyze data/SO2.plk.gz data/SO2_cross_sections.csv output 
+python main.py analyze data/SO2.plk.gz -c data/SO2_cross_sections.csv output 
 ```
 
 This will create graphs in the output folder.
@@ -25,11 +25,12 @@ Options:
 ### Analyze Usage
 
 ```
-Usage: main.py analyze [OPTIONS] IN_DATA CROSS_SECTIONS OUT_FOLDER
+Usage: main.py analyze [OPTIONS] IN_DATA OUT_FOLDER
 
 Options:
-  -i, --instrument_type [open-cavity|closed-cavity] (defaults to closed-cavity)
+  -c, --cross_sections_in FILENAME
+  -i, --instrument_type [open-cavity|closed-cavity]
   -b, --bounds_file FILENAME
-  --help                          Show this message and exit.
+  --help  
 
 ```
