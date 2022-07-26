@@ -64,7 +64,7 @@ setup_info = dict(
         "arrow==1.2.2",
         "numpy==1.22.3",
         "pandas==1.4.2",
-        "scipy==1.8.0",
+        "lmfit==1.0.3",
     ],
 )
 

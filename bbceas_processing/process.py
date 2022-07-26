@@ -1,7 +1,5 @@
-from audioop import cross
 import numpy as np
 import pandas as pd
-from scipy import optimize
 
 from . import rayleigh
 
@@ -84,13 +82,12 @@ def get_densities():
     return {"N2": N2_dens, "He": He_dens, "target": target_dens}
 
 
-# Below function relies on lmfit.minimize()
+# Curve fitting function that relies on lmfit.minimize()
 def fit_curve_lm(cross_sections, xdata, ydata):
     import lmfit
-    from matplotlib import pyplot as plt
 
+    # Create Parameter objects. There should be as many concentration parameters as there are cross-sections.
     params = lmfit.Parameters()
-
     for i in range(len(cross_sections)):
         name = "concentration" + str(i)
         if i == 0:
@@ -101,6 +98,7 @@ def fit_curve_lm(cross_sections, xdata, ydata):
     params.add("b", value=1)
     params.add("c", value=1)
 
+    # Returns fitted y values. Accepts concentrations as Parameter objects.
     def func(*args):
         # load in the arguments
         params = list(args)
@@ -128,12 +126,13 @@ def fit_curve_lm(cross_sections, xdata, ydata):
         +c
         return result
 
+    # Returns the final fitted values. Accepts concentrations in a list of floats instead of a list of Parameter objects.
     def final_func(*args):
         params = list(args)
 
-        wavelength = params[0]  # the first param is always the wavelengths(xdata)
-        concentration = params[1:-3]  # these params are always the concentrations
-        # The last three params are always the polynomial
+        wavelength = params[0]  # The first param is always the wavelengths(xdata).
+        concentration = params[1:-3]  # These params are always the concentrations.
+        # The last three params are always the polynomial.
         a = params[-3]
         b = params[-2]
         c = params[-1]
@@ -148,6 +147,7 @@ def fit_curve_lm(cross_sections, xdata, ydata):
         +c
         return result
 
+    # Finds the residualbetween the fitted y values and the actual y values.
     def residual(params, x, ydata):
         concentration = []
 
@@ -163,16 +163,21 @@ def fit_curve_lm(cross_sections, xdata, ydata):
         y_fit = func(x, concentration, a, b, c)
         return y_fit - ydata
 
+    # Minimize the residual using the parameters given.
     fit = lmfit.minimize(residual, params, args=(xdata, ydata), method="leastsq")
+    # Grab the concentration and polynomial values from the parameter objects.
     results = []
     for key, value in fit.params.valuesdict().items():
         results.append(value)
+    # Return the fitted data and the concentration and polynomial values.
     return final_func(xdata, *results), results
 
 
-# Below function relies soly on scipy.optimize.curve_fit()
+# Curve fitting function that relies soly on scipy.optimize.curve_fit().
 def fit_curve(cross_sections, xdata, ydata):
-    # the function for curve fitting
+    from scipy import optimize
+
+    # The function for curve fitting.
     def func(*args):
 
         params = list(args)
@@ -194,7 +199,7 @@ def fit_curve(cross_sections, xdata, ydata):
 
         return result
 
-    # inital guess
+    # Inital guess.
     p0 = []
     for i in cross_sections:
         p0.append(1.34e12)
