@@ -1,5 +1,3 @@
-from matplotlib.pyplot import axis
-import numpy as np
 import pandas as pd
 
 from . import rayleigh
@@ -7,23 +5,7 @@ from . import rayleigh
 
 def analyze(samples, bounds, cross_sections, instrument):
     # Check that the cross-sections are the right size.
-    done_flag = False
-    while done_flag != True:
-        done_flag = True
-        for section in cross_sections:
-            diff = len(samples.columns) - len(section.index)
-            if diff > 0:
-                samples.drop(
-                    samples.columns[len(samples.columns) - diff], axis=1, inplace=True
-                )
-                done_flag = False
-                print("Dropped ", diff, " columns from samples to match cross_sections")
-            elif diff < 0:
-                section.drop(
-                    section.index[len(section.index) + diff], axis=0, inplace=True
-                )
-                done_flag = False
-                print("Dropped ", -diff, " rows from cross_section to match samples")
+    samples, cross_sections = check_size(samples, cross_sections)
 
     # Replace sample's wavelength with the cross_section's wavelength.
     samples.columns = cross_sections[0].index
@@ -77,6 +59,27 @@ def analyze(samples, bounds, cross_sections, instrument):
         "fit_curve_values": fit_curve_values_all,
         "residuals": residuals_all,
     }
+
+
+def check_size(samples, cross_sections):
+    done_flag = False
+    while done_flag != True:
+        done_flag = True
+        for section in cross_sections:
+            diff = len(samples.columns) - len(section.index)
+            if diff > 0:
+                samples.drop(
+                    samples.columns[len(samples.columns) - diff], axis=1, inplace=True
+                )
+                done_flag = False
+                print("Dropped ", diff, " columns from samples to match cross_sections")
+            elif diff < 0:
+                section.drop(
+                    section.index[len(section.index) + diff], axis=0, inplace=True
+                )
+                done_flag = False
+                print("Dropped ", -diff, " rows from cross_section to match samples")
+    return samples, cross_sections
 
 
 def select_wavelengths(samples, cross_sections, low_bound, high_bound):
