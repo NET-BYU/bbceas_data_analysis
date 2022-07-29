@@ -1,3 +1,4 @@
+from matplotlib.pyplot import axis
 import numpy as np
 import pandas as pd
 
@@ -5,11 +6,29 @@ from . import rayleigh
 
 
 def analyze(samples, bounds, cross_sections, instrument):
-    # Replace sample's wavelength with the cross_section's wavelength
-    # This should be a redundant call. This should a
+    # Check that the cross-sections are the right size.
+    done_flag = False
+    while done_flag != True:
+        done_flag = True
+        for section in cross_sections:
+            diff = len(samples.columns) - len(section.index)
+            if diff > 0:
+                samples.drop(
+                    samples.columns[len(samples.columns) - diff], axis=1, inplace=True
+                )
+                done_flag = False
+                print("Dropped ", diff, " columns from samples to match cross_sections")
+            elif diff < 0:
+                section.drop(
+                    section.index[len(section.index) + diff], axis=0, inplace=True
+                )
+                done_flag = False
+                print("Dropped ", -diff, " rows from cross_section to match samples")
+
+    # Replace sample's wavelength with the cross_section's wavelength.
     samples.columns = cross_sections[0].index
 
-    # Select wavelengths we care about (306 - 312)
+    # Select wavelengths we care about (306 - 312).
     samples, cross_sections = select_wavelengths(samples, cross_sections, 306, 312)
 
     bounded_samples = instrument.bound_samples(samples, bounds)
