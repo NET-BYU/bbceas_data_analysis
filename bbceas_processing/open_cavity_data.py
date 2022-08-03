@@ -1,4 +1,5 @@
 import arrow
+from numpy import NaN
 import pandas as pd
 
 from . import rayleigh
@@ -36,10 +37,23 @@ class OpenCavityData:
         return self.bounded_samples
 
     def get_reflectivity(self, samples=None):
-        with_optic = self.bounded_samples["target"]
+        with_optic = self.bounded_samples["target"].mean(axis=0)
         without_optic = self.bounded_samples["calibration"]
+
+        # Interpolate loss_optic to match the samples
+        tmp = pd.DataFrame(with_optic)
+        tmp.rename({0:1}, axis=1, inplace=True)
+        tmp["id"] = "B"
+        tmp[1] = NaN
+        inter_loss_optic = pd.DataFrame(self.loss_optic)
+        inter_loss_optic["id"] = "A"
+        inter_loss_optic = pd.concat([tmp, inter_loss_optic])
+        inter_loss_optic.sort_index(inplace=True)
+        inter_loss_optic.interpolate(inplace=True)
+        inter_loss_optic.drop(inter_loss_optic[inter_loss_optic["id"]=="A"].index, inplace=True, axis=0)
+        inter_loss_optic.drop(columns="id", inplace=True, axis=1)
         reflectivity = 1 - (
-            (with_optic / (without_optic - with_optic)) * self.loss_optic
+            (with_optic / (without_optic - with_optic)) * inter_loss_optic.squeeze()
         )
         return reflectivity
 
