@@ -1,4 +1,5 @@
 import arrow
+import pandas as pd
 
 from . import rayleigh
 
@@ -8,35 +9,42 @@ LOSS_OPTIC = 0.02
 
 class OpenCavityData:
 
+    loss_optic = pd.read_csv(
+        "bbceas_processing/Loss_optic.csv", header=None, index_col=0
+    )
+
     bound_params = ["dark", "calibration", "target"]
 
     def bound_samples(self, samples, bounds):
 
-        bounds_data = {}
+        self.bounds_data = {}
         for key, value in bounds.items():
-            bounds_data[key] = samples[
+            self.bounds_data[key] = samples[
                 (
                     (samples.index > arrow.get(value[0]).datetime)
                     & (samples.index < arrow.get(value[1]).datetime)
                 )
             ]
 
-        bounded_samples = {
-            "calibration": bounds_data["calibration"].mean(axis=0)
-            - bounds_data["dark"].mean(axis=0),
-            "target": bounds_data["target"].sub(
-                bounds_data["dark"].mean(axis=0), axis=1
+        self.bounded_samples = {
+            "calibration": self.bounds_data["calibration"].mean(axis=0)
+            - self.bounds_data["dark"].mean(axis=0),
+            "target": self.bounds_data["target"].sub(
+                self.bounds_data["dark"].mean(axis=0), axis=1
             ),
         }
-        return bounded_samples
+        return self.bounded_samples
 
-    def reflectivity_fabry(self, with_optic, without_optic):
-        self.without_optic = without_optic
-        reflectivity = 1 - ((with_optic / (without_optic - with_optic)) * LOSS_OPTIC)
+    def get_reflectivity(self, samples=None):
+        with_optic = self.bounded_samples["target"]
+        without_optic = self.bounded_samples["calibration"]
+        reflectivity = 1 - (
+            (with_optic / (without_optic - with_optic)) * self.loss_optic
+        )
         return reflectivity
 
     def get_absorption(self, index, reflectivity):
-        absorb = rayleigh.Calculate_alpha(
+        absorb = rayleigh._calculate_alpha(
             d0=CAVITY_LENGTH,
             Reflectivity=reflectivity,
             Ref=self.without_optic,

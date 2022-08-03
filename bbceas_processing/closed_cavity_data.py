@@ -30,7 +30,7 @@ class ClosedCavityData:
 
         return self.bounded_samples
 
-    def get_densities(self):
+    def _get_densities(self):
         # find density of the gasses
         self.N2_dens = rayleigh.Density_calc(pressure=620, temp_K=298)
         self.He_dens = rayleigh.Density_calc(pressure=620, temp_K=298)
@@ -40,7 +40,7 @@ class ClosedCavityData:
 
     # TODO: consider consolodating the next four functions
     def get_reflectivity(self, samples):
-
+        self._get_densities()
         self.reflectivity = self._reflectivity_single(
             d0=CAVITY_LENGTH,
             wl=samples.columns,
