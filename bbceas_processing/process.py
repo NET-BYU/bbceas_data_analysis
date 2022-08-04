@@ -18,8 +18,8 @@ def analyze(samples, bounds, cross_sections, instrument):
     # instrument.get_densities()
 
     reflectivity = instrument.get_reflectivity(samples)
-    print(reflectivity)
-    exit()
+
+    print(reflectivity.to_string())
 
     absorption_all = pd.DataFrame()
     fit_data_all = pd.DataFrame()

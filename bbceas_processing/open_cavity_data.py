@@ -1,4 +1,5 @@
 import arrow
+from matplotlib.axis import Axis
 from numpy import NaN
 import pandas as pd
 
@@ -14,7 +15,7 @@ class OpenCavityData:
         "bbceas_processing/Loss_optic.csv", header=None, index_col=0
     )
 
-    bound_params = ["dark", "calibration", "target"]
+    bound_params = ["dark", "ambient", "with-optic" "target"]
 
     def bound_samples(self, samples, bounds):
 
@@ -28,7 +29,9 @@ class OpenCavityData:
             ]
 
         self.bounded_samples = {
-            "calibration": self.bounds_data["calibration"].mean(axis=0)
+            "ambient": self.bounds_data["ambient"].mean(axis=0)
+            - self.bounds_data["dark"].mean(axis=0),
+            "with-optic": self.bounds_data["with-optic"].mean(axis=0)
             - self.bounds_data["dark"].mean(axis=0),
             "target": self.bounds_data["target"].sub(
                 self.bounds_data["dark"].mean(axis=0), axis=1
@@ -37,8 +40,10 @@ class OpenCavityData:
         return self.bounded_samples
 
     def get_reflectivity(self, samples=None):
-        with_optic = self.bounded_samples["target"].mean(axis=0)
-        without_optic = self.bounded_samples["calibration"]
+    # Target instead here should be ambient
+
+        with_optic = self.bounded_samples["with-optic"]
+        without_optic = self.bounded_samples["ambient"]
 
         # Interpolate loss_optic to match the samples
         tmp = pd.DataFrame(with_optic)
@@ -52,18 +57,32 @@ class OpenCavityData:
         inter_loss_optic.interpolate(inplace=True)
         inter_loss_optic.drop(inter_loss_optic[inter_loss_optic["id"]=="A"].index, inplace=True, axis=0)
         inter_loss_optic.drop(columns="id", inplace=True, axis=1)
+
         reflectivity = 1 - (
             (with_optic / (without_optic - with_optic)) * inter_loss_optic.squeeze()
         )
+        reflectivity.interpolate(inplace=True)
         return reflectivity
 
     def get_absorption(self, index, reflectivity):
-        absorb = rayleigh._calculate_alpha(
+        absorb = _calculate_alpha(
             d0=CAVITY_LENGTH,
             Reflectivity=reflectivity,
-            Ref=self.without_optic,
+            Ref=self.bounded_samples["ambient"], #TODO: this should be the ambient
             Spec=self.bounded_samples["target"].loc[[index]].squeeze(),
             wl=self.bounded_samples["target"].loc[[index]].squeeze().index,
-            density_gas=self.N2_dens,
+            density_gas=self._get_density(),
         )
         return absorb
+
+    def _get_density(self):
+        target_dens = rayleigh.Density_calc(pressure=620, temp_K=298)
+        return target_dens
+
+def _calculate_alpha(d0, Reflectivity, Ref, Spec, wl, density_gas):
+    Scat_Air = rayleigh.Rayleigh_Air(wl)
+    alpha = ((1 - Reflectivity) / d0 + density_gas * Scat_Air) * (
+        (Ref - Spec) / Spec
+    )
+
+    return alpha
