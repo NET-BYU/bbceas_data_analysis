@@ -153,7 +153,8 @@ def run_bounds_picker(data, instrument_type):
             id="radio-select",
             options=[
                 {"label": "Dark Count   ", "value": "darkcounts"},
-                {"label": "Calibration   ", "value": "Calibration"},
+                {"label": "Ambient   ", "value": "Ambient"},
+                {"label": "With-Optic   ", "value": "With-Optic"},
                 {"label": "Target Sample", "value": "Target"},
             ],
         )
@@ -191,9 +192,12 @@ def run_bounds_picker(data, instrument_type):
             bounds["target"][1] = ran[1]
 
         if instrument_type == "open-cavity":
-            if radio_select == "Calibration":
-                bounds["calibration"][0] = ran[0]
-                bounds["calibration"][1] = ran[1]
+            if radio_select == "Ambient":
+                bounds["ambient"][0] = ran[0]
+                bounds["ambient"][1] = ran[1]
+            if radio_select == "With-Optic":
+                bounds["with-optic"][0] = ran[0]
+                bounds["with-optic"][1] = ran[1]
 
         if instrument_type == "closed-cavity":
             if radio_select == "N2":

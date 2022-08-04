@@ -15,9 +15,11 @@ def analyze(samples, bounds, cross_sections, instrument):
 
     bounded_samples = instrument.bound_samples(samples, bounds)
 
-    instrument.get_densities()
+    # instrument.get_densities()
 
     reflectivity = instrument.get_reflectivity(samples)
+
+    print(reflectivity.to_string())
 
     absorption_all = pd.DataFrame()
     fit_data_all = pd.DataFrame()
