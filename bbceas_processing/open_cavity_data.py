@@ -10,8 +10,12 @@ LOSS_OPTIC = 0.02
 
 
 class OpenCavityData:
-
-    loss_optic = pd.read_csv("Loss_optic.csv", header=None, index_col=0)
+    try:
+        loss_optic = pd.read_csv(
+            "bbceas_processing/Loss_optic.csv", header=None, index_col=0
+        )
+    except:
+        loss_optic = pd.read_csv("Loss_optic.csv", header=None, index_col=0)
 
     bound_params = ["dark", "ambient", "with-optic" "target"]
 
