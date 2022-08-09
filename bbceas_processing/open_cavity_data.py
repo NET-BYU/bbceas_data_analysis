@@ -7,15 +7,14 @@ from . import rayleigh
 
 CAVITY_LENGTH = 500
 LOSS_OPTIC = 0.02
+from os import path
 
 
 class OpenCavityData:
-    try:
-        loss_optic = pd.read_csv(
-            "bbceas_processing/Loss_optic.csv", header=None, index_col=0
-        )
-    except:
-        loss_optic = pd.read_csv("Loss_optic.csv", header=None, index_col=0)
+
+    loss_optic = pd.read_csv(
+        path.join(path.dirname(__file__), 'Loss_optic.csv'), header=None, index_col=0
+    )
 
     bound_params = ["dark", "ambient", "with-optic" "target"]
 
