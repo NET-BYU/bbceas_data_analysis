@@ -66,6 +66,7 @@ setup_info = dict(
         "pandas==1.4.2",
         "lmfit==1.0.3",
     ],
+    include_package_data=True,
 )
 
 
