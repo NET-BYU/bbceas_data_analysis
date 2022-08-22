@@ -52,14 +52,23 @@ def analyze(samples, bounds, cross_sections, instrument):
 
     residuals_all = fit_data_all - absorption_all
 
+    # returns the timestamp of associated with the highest concentration
+    index_max_conc = fit_curve_values_all.idxmax()[0]
+    fit_data_highest = fit_data_all.loc[[index_max_conc]].squeeze()
+    absorption_highest = absorption_all.loc[[index_max_conc]].squeeze()
+    residuals_highest = residuals_all.loc[[index_max_conc]].squeeze()
+
     return {
         "samples": samples,
         "reflectivity": reflectivity,
-        "absorption": absorption_all,
+        "absorption_all": absorption_all,
+        "absorption_highest": absorption_highest,
         "cross_sections_target": cross_sections[0],
-        "fit_data": fit_data_all,
+        "fit_data_all": fit_data_all,
+        "fit_data_highest": fit_data_highest,
         "fit_curve_values": fit_curve_values_all,
-        "residuals": residuals_all,
+        "residuals_all": residuals_all,
+        "residuals_highest": residuals_highest,
     }
 
 

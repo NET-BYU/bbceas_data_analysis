@@ -96,12 +96,10 @@ def save_data(processed_data, out_folder):
     plt.savefig(out_folder / "cross_sections_target.png")
     plt.cla()
 
-    # returns the timestamp of associated with the highest concentration
-    index_max_conc = processed_data["fit_curve_values"].idxmax()[0]
 
-    fitted_data = processed_data["fit_data"].loc[[index_max_conc]].squeeze()
-    absorption = processed_data["absorption"].loc[[index_max_conc]].squeeze()
-    residuals = processed_data["residuals"].loc[[index_max_conc]].squeeze()
+    fitted_data = processed_data["fit_data_highest"]
+    absorption = processed_data["absorption_highest"]
+    residuals = processed_data["residuals_highest"]
 
     for i in range(len(processed_data["fit_curve_values"].columns) - 3):
         if i == 0:
